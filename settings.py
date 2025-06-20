@@ -3,7 +3,7 @@ import pygame
 # Dimensiones de la pantalla
 WIDTH, HEIGHT = 1000, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mini Boxhead")
+pygame.display.set_caption("Jueguito de supervivencia")
 
 # Colores
 WHITE = (255, 255, 255)

@@ -6,8 +6,9 @@ from settings import WIDTH, HEIGHT, WIN, PLAYER_SIZE, ARMAS
 from jugador import Player
 from bullet import create_bullet, move_bullets, draw_bullets
 from zombie import Zombie
-from ui import menu
+from ui import menu, pause_menu, death_screen
 from utils import rotate_direction
+from armas import Weapon
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -16,6 +17,12 @@ clock = pygame.time.Clock()
 zombies = []
 bullets_p1 = []
 bullets_p2 = []
+
+ARMAS = [
+    Weapon("Pistola", 30),
+    Weapon("Escopeta", 45),
+    Weapon("Automatica", 10),
+]
 
 # Variables de oleadas
 wave = 1
@@ -46,7 +53,8 @@ def draw(players, two_players):
 
     font = pygame.font.SysFont(None, 24)
     for i, player in enumerate(players):
-        arma = font.render(f"Jugador {i + 1}: {ARMAS[player.arma_index]}", True, (255, 255, 255))
+        arma_nombre = ARMAS[player.arma_index].name
+        arma = font.render(f"Jugador {i + 1}: {arma_nombre}", True, (255, 255, 255))
         WIN.blit(arma, (10, 40 + i * 20))
 
     for z in zombies:
@@ -87,10 +95,20 @@ def main(two_players=False):
         clock.tick(60)
         spawn_timer += 1
 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_ESCAPE]:
+            should_continue = pause_menu()
+            if not should_continue:
+                zombies.clear()
+                score = 0
+                wave = 0
+                zombies_alive = 0
+                zombies_remaining = 0
+                return 
+
         for i in range(len(players)):
             shoot_cooldowns[i] += 1
 
-        # Sistema de oleadas
         if zombies_remaining > 0:
             spawn_timer += 1
             if spawn_timer >= SPAWN_DELAY:
@@ -99,7 +117,6 @@ def main(two_players=False):
                 zombies_alive += 1
                 spawn_timer = 0
 
-        # Avanzar de oleada
         if zombies_alive <= 0 and zombies_remaining <= 0:
             wave += 1
             zombies_remaining = wave * 5
@@ -123,17 +140,10 @@ def main(two_players=False):
 
         # Disparo
         for i, p in enumerate(players):
-            if keys[p.keys["shoot"]] and shoot_cooldowns[i] >= tiempo[p.arma_index]:
+            if keys[p.keys["shoot"]] and shoot_cooldowns[i] >= ARMAS[p.arma_index].cooldown:
                 arma = ARMAS[p.arma_index]
                 bullets = bullets_p1 if i == 0 else bullets_p2
-                if arma == "Pistola":
-                    bullets.append(create_bullet(p.pos, p.size, p.shoot_dir))
-                elif arma == "Escopeta":
-                    for angle in [-15, 0, 15]:
-                        dir = rotate_direction(p.shoot_dir, angle)
-                        bullets.append(create_bullet(p.pos, p.size, dir))
-                elif arma == "Automatica":
-                    bullets.append(create_bullet(p.pos, p.size, p.shoot_dir))
+                bullets.extend(arma.shoot(p.pos, p.size, p.shoot_dir))
                 shoot_cooldowns[i] = 0
 
         move_bullets(bullets_p1, WIDTH, HEIGHT)
@@ -153,9 +163,14 @@ def main(two_players=False):
 
             player_rect = pygame.Rect(*target.pos, target.size, target.size)
             if z.rect.colliderect(player_rect):
-                print(f"¡{target.color} atrapado!")
-                pygame.quit()
-                sys.exit()
+                player_index = players.index(target) + 1
+                death_screen(player_index)
+                zombies.clear()
+                score = 0
+                wave = 0
+                zombies_alive = 0
+                zombies_remaining = 0
+                return 
 
         # Colisión de balas
         for bullet_list in [bullets_p1, bullets_p2]:
@@ -172,5 +187,6 @@ def main(two_players=False):
         draw(players, two_players)
 
 if __name__ == "__main__":
-    is_two_players = menu()  # Llama al menú principal
-    main(is_two_players)
+    while True:
+        is_two_players = menu()  # Llama al menú principal
+        main(is_two_players)

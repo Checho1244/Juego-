@@ -2,10 +2,17 @@ import pygame
 from settings import BULLET_SPEED, WHITE
 
 def create_bullet(pos, size, direction):
-    if direction in [(0, 1), (0, -1)]:
-        bullet = pygame.Rect(pos[0] + size//2, pos[1] + size//2, 1, 20)
+    dx, dy = direction
+    abs_dx, abs_dy = abs(dx), abs(dy)
+
+    center_x = pos[0] + size // 2
+    center_y = pos[1] + size // 2
+
+    if abs_dy >= abs_dx:
+        bullet = pygame.Rect(center_x - 1, center_y - 10, 2, 20)
     else:
-        bullet = pygame.Rect(pos[0] + size//2, pos[1] + size//2, 20, 1)
+        bullet = pygame.Rect(center_x - 10, center_y - 1, 20, 2)
+
     return (bullet, direction)
 
 def move_bullets(bullets, width, height):

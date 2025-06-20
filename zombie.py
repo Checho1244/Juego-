@@ -1,14 +1,14 @@
 import pygame
 import math
 
-zombie_size = 40  # Asegúrate de que coincida con el tamaño en el archivo principal
-zombie_speed = 1.5  # Igual que en tu juego
+zombie_size = 40
+zombie_speed = 1.5  
 RED = (255, 0, 0)
 
 class Zombie:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, zombie_size, zombie_size)
-        self.hp = 3  # Puedes ajustar este valor como quieras
+        self.hp = 3  
 
     def draw(self, win):
         pygame.draw.rect(win, RED, self.rect)
