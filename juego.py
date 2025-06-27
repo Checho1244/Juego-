@@ -5,10 +5,11 @@ import math
 from settings import WIDTH, HEIGHT, WIN, PLAYER_SIZE, ARMAS
 from jugador import Player
 from bullet import create_bullet, move_bullets, draw_bullets
-from zombie import Zombie
-from ui import menu, pause_menu, death_screen
-from utils import rotate_direction
+from zombie import Zombie, Boss, zombie_size, boss_size
+from ui import menu, pause_menu, death_screen, select_map
+from utils import rotate_direction, mapa_carga
 from armas import Weapon
+import map_engine
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -33,14 +34,33 @@ SPAWN_DELAY = 30
 
 score = 0
 
-def spawn_zombie():
-    x = random.choice([0, WIDTH])
-    y = random.randint(0, HEIGHT)
-    zombies.append(Zombie(x, y))
+def spawn_enemy(players, current_wave):
+    max_attempts = 50
+    for _ in range(max_attempts):
+        x = random.choice([0, WIDTH])
+        y = random.randint(0, HEIGHT)
+        size = boss_size if (current_wave % 5 == 0) else zombie_size
+        new_rect = pygame.Rect(x, y, size, size)
+
+        collides_wall = any(tile.solid and tile.rect.colliderect(new_rect) for tile in map_engine.map_tiles)
+        collides_player = any(pygame.Rect(*player.pos, player.size, player.size).colliderect(new_rect) for player in players)
+
+        if not collides_wall and not collides_player:
+            if current_wave % 5 == 0:
+                # Solo agregar jefe si no hay ya uno
+                if not any(isinstance(z, Boss) for z in zombies):
+                    zombies.append(Boss(x, y))
+                    return
+            else:
+                zombies.append(Zombie(x, y))
+                return
 
 def draw(players, two_players):
-    WIN.fill((30, 30, 30))
+    WIN.blit(fondo_actual, (0,0))
     font = pygame.font.SysFont(None, 30)
+
+    for tile in map_engine.map_tiles:
+        tile.draw(WIN)
 
     for player in players:
         pygame.draw.rect(WIN, player.color, (*player.pos, player.size, player.size))
@@ -65,7 +85,7 @@ def draw(players, two_players):
 
     pygame.display.update()
 
-def main(two_players=False):
+def main(two_players=False, fondo_actual=None):
     global score, zombies_remaining, zombies_alive, wave, spawn_timer, SPAWN_DELAY
     players = []
 
@@ -112,14 +132,17 @@ def main(two_players=False):
         if zombies_remaining > 0:
             spawn_timer += 1
             if spawn_timer >= SPAWN_DELAY:
-                spawn_zombie()
+                spawn_enemy(players, wave)
                 zombies_remaining -= 1
                 zombies_alive += 1
                 spawn_timer = 0
 
         if zombies_alive <= 0 and zombies_remaining <= 0:
             wave += 1
-            zombies_remaining = wave * 5
+            if wave % 5 == 0:
+                zombies_remaining = 1
+            else:
+                zombies_remaining = 2**wave
             print(f"¡Oleada {wave}!")
 
         keys = pygame.key.get_pressed()
@@ -149,7 +172,7 @@ def main(two_players=False):
         move_bullets(bullets_p1, WIDTH, HEIGHT)
         move_bullets(bullets_p2, WIDTH, HEIGHT)
 
-        # Movimiento y colisión de zombis
+
         for z in zombies[:]:
             if two_players:
                 d1 = math.hypot(player1.pos[0] - z.rect.x, player1.pos[1] - z.rect.y)
@@ -172,21 +195,37 @@ def main(two_players=False):
                 zombies_remaining = 0
                 return 
 
-        # Colisión de balas
         for bullet_list in [bullets_p1, bullets_p2]:
-            for bullet, _ in bullet_list[:]:
+            for bullet, dir in bullet_list[:]:
+                hit_wall = False
+                for tile in map_engine.map_tiles:
+                    if tile.solid and tile.rect.colliderect(bullet):
+                        bullet_list.remove((bullet, dir))
+                        hit_wall = True
+                        break
+
+                if hit_wall:
+                    continue
+
                 for z in zombies[:]:
                     if bullet.colliderect(z):
-                        bullet_list.remove((bullet, _))
+                        bullet_list.remove((bullet, dir))
                         if z.hit(1):
                             zombies.remove(z)
                             zombies_alive -= 1
-                            score += 10
+                            if isinstance(z, Boss):
+                                score += 100
+                            else:
+                                score += 10
                         break
 
         draw(players, two_players)
 
 if __name__ == "__main__":
     while True:
-        is_two_players = menu()  # Llama al menú principal
+        is_two_players = menu() 
+        mapa_seleccionado, select = select_map()
+        map_engine.generate_map(mapa_seleccionado)
+        imagen = mapa_carga(select)
+        fondo_actual = pygame.transform.scale(imagen, (WIDTH, HEIGHT))
         main(is_two_players)

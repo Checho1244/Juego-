@@ -1,7 +1,7 @@
 import pygame
 
 # Dimensiones de la pantalla
-WIDTH, HEIGHT = 1000, 600
+WIDTH, HEIGHT = 1300, 680 #65-34
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Jueguito de supervivencia")
 
