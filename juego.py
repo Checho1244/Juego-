@@ -47,13 +47,12 @@ def spawn_enemy(players, current_wave):
 
         if not collides_wall and not collides_player:
             if current_wave % 5 == 0:
-                # Solo agregar jefe si no hay ya uno
                 if not any(isinstance(z, Boss) for z in zombies):
                     zombies.append(Boss(x, y))
-                    return
+                    return 2
             else:
                 zombies.append(Zombie(x, y))
-                return
+                return 1
 
 def draw(players, two_players):
     WIN.blit(fondo_actual, (0,0))

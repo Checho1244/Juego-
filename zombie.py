@@ -6,7 +6,7 @@ zombie_size = 40
 zombie_speed = 1.5  
 RED = (255, 0, 0)
 boss_size = 80
-boss_speed = 1
+boss_speed = 2
 BOSS_COLOR = (255, 100, 0)
 
 
